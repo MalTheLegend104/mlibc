@@ -1,1 +1,1 @@
-../../../../abis/linux/time.h
+#include <abis/linux/time.h>

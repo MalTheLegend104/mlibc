@@ -1,1 +1,1 @@
-../../../../abis/linux/auxv.h
+#include <abis/linux/auxv.h>

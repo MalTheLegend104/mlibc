@@ -1,1 +1,1 @@
-../../../../abis/linux/dev_t.h
+#include <abis/linux/dev_t.h>

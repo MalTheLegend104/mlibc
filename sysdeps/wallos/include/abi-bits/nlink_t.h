@@ -1,1 +1,1 @@
-../../../../abis/linux/nlink_t.h
+#include <abis/linux/nlink_t.h>

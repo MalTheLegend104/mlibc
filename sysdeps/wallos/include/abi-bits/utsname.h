@@ -1,1 +1,1 @@
-../../../../abis/linux/utsname.h
+#include <abis/linux/utsname.h>

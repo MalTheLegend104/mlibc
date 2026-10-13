@@ -1,1 +1,1 @@
-../../../../abis/linux/uid_t.h
+#include <abis/linux/uid_t.h>

@@ -1,1 +1,1 @@
-../../../../abis/linux/suseconds_t.h
+#include <abis/linux/suseconds_t.h>

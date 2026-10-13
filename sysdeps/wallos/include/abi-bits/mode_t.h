@@ -1,1 +1,1 @@
-../../../../abis/linux/mode_t.h
+#include <abis/linux/mode_t.h>

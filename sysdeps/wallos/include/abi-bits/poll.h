@@ -1,1 +1,1 @@
-../../../../abis/linux/poll.h
+#include <abis/linux/poll.h>

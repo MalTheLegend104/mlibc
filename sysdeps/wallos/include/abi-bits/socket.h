@@ -1,1 +1,1 @@
-../../../../abis/linux/socket.h
+#include <abis/linux/socket.h>

@@ -1,1 +1,1 @@
-../../../../abis/linux/ino_t.h
+#include <abis/linux/ino_t.h>

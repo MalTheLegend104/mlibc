@@ -1,1 +1,1 @@
-../../../../abis/linux/riscv-hwprobe.h
+#include <abis/linux/riscv-hwprobe.h>

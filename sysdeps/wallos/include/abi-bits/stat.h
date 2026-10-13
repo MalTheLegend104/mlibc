@@ -1,1 +1,1 @@
-../../../../abis/linux/stat.h
+#include <abis/linux/stat.h>

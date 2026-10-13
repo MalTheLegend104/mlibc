@@ -1,1 +1,1 @@
-../../../../abis/linux/sched_param.h
+#include <abis/linux/sched_param.h>

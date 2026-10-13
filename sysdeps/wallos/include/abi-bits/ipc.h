@@ -1,1 +1,1 @@
-../../../../abis/linux/ipc.h
+#include <abis/linux/ipc.h>

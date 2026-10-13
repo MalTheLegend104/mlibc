@@ -1,1 +1,1 @@
-../../../../abis/linux/signal.h
+#include <abis/linux/signal.h>

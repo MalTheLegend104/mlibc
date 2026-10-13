@@ -1,1 +1,1 @@
-../../../../abis/linux/msg.h
+#include <abis/linux/msg.h>

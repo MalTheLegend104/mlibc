@@ -1,1 +1,1 @@
-../../../../abis/linux/resource.h
+#include <abis/linux/resource.h>

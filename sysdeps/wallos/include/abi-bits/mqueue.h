@@ -1,1 +1,1 @@
-../../../../abis/linux/mqueue.h
+#include <abis/linux/mqueue.h>

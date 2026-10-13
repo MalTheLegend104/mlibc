@@ -1,3 +1,6 @@
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include <mlibc/locale.hpp>
 
 namespace {
@@ -45,7 +48,8 @@ nl_ctype::nl_ctype() {
 	set(_NL_CTYPE_TOLOWER, frg::span<const uint32_t>{cLocaleCtypeToLower});
 	set(_NL_CTYPE_TOUPPER, frg::span<const uint32_t>{cLocaleCtypeToUpper});
 	set(_NL_CTYPE_CLASS32, frg::span<const uint8_t>{cLocaleCtypeClass32});
-	set(_NL_CTYPE_CLASS_NAMES, frg::string_view{defaultCtypeClassNames, sizeof(defaultCtypeClassNames)});
+	set(_NL_CTYPE_CLASS_NAMES,
+	    frg::string_view{defaultCtypeClassNames, sizeof(defaultCtypeClassNames)});
 	set(_NL_CTYPE_MAP_NAMES, frg::string_view{defaultCtypeMapNames, sizeof(defaultCtypeMapNames)});
 	set(_NL_CTYPE_MB_CUR_MAX, uint32_t{1});
 	set(_NL_CTYPE_CODESET_NAME, {"ANSI_X3.4-1968"});
@@ -300,7 +304,10 @@ nl_collate::nl_collate() {
 	set(_NL_COLLATE_SYMB_HASH_SIZEMB, 0);
 	set(_NL_COLLATE_SYMB_TABLEMB, frg::span<const uint8_t>{});
 	set(_NL_COLLATE_SYMB_EXTRAMB, frg::span<const uint8_t>{});
-	set(_NL_COLLATE_COLLSEQMB, frg::span<const uint8_t>{reinterpret_cast<const uint8_t *>(cLocaleCollSeqMb.data()), cLocaleCollSeqMb.size()});
+	set(_NL_COLLATE_COLLSEQMB,
+	    frg::span<const uint8_t>{
+	        reinterpret_cast<const uint8_t *>(cLocaleCollSeqMb.data()), cLocaleCollSeqMb.size()
+	    });
 	set(_NL_COLLATE_COLLSEQWC, frg::span<const uint32_t>{cLocaleCollSeqWc});
 	set(_NL_COLLATE_CODESET, {"ANSI_X3.4-1968"});
 }
@@ -399,7 +406,8 @@ nl_identification::nl_identification() {
 	set(_NL_IDENTIFICATION_ABBREVIATION, {""});
 	set(_NL_IDENTIFICATION_REVISION, {"1.0"});
 	set(_NL_IDENTIFICATION_DATE, {"2001-12-08"});
-	set(_NL_IDENTIFICATION_CATEGORY, frg::string_view{defaultIdentificationCategory, sizeof(defaultIdentificationCategory)});
+	set(_NL_IDENTIFICATION_CATEGORY,
+	    frg::string_view{defaultIdentificationCategory, sizeof(defaultIdentificationCategory)});
 	set(_NL_IDENTIFICATION_CODESET, {"ANSI_X3.4-1968"});
 }
 

@@ -1,1 +1,1 @@
-../../../../abis/linux/sem.h
+#include <abis/linux/sem.h>

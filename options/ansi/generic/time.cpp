@@ -1,27 +1,30 @@
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include <algorithm>
 #include <array>
+#include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <limits.h>
 #include <wchar.h>
-#include <stdlib.h>
-#include <ctype.h>
 
 #if __MLIBC_POSIX_OPTION
-#include <unistd.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 #include <bits/ensure.h>
-#include <mlibc/debug.hpp>
-#include <mlibc/file-window.hpp>
 #include <mlibc/all-sysdeps.hpp>
 #include <mlibc/allocator.hpp>
-#include <mlibc/lock.hpp>
-#include <mlibc/locale.hpp>
 #include <mlibc/bitutil.hpp>
+#include <mlibc/debug.hpp>
+#include <mlibc/file-window.hpp>
+#include <mlibc/locale.hpp>
+#include <mlibc/lock.hpp>
 #include <mlibc/strings.hpp>
 #include <mlibc/time.hpp>
 
@@ -39,7 +42,7 @@ const char __utc[] = "UTC";
 constexpr size_t tznameNormal = 0;
 constexpr size_t tznameDST = 1;
 
-frg::string<MemoryAllocator> tznameStorage[2] = { {getAllocator()}, {getAllocator()} };
+frg::string<MemoryAllocator> tznameStorage[2] = {{getAllocator()}, {getAllocator()}};
 
 } // namespace
 
@@ -55,28 +58,24 @@ static FutexLock __time_lock;
 clock_t clock(void) {
 	struct timespec ts;
 
-	if(clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts))
+	if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts))
 		return -1;
 
-	if(ts.tv_sec > LONG_MAX / 1000000 || ts.tv_nsec / 1000 > LONG_MAX - 1000000 * ts.tv_sec)
+	if (ts.tv_sec > LONG_MAX / 1000000 || ts.tv_nsec / 1000 > LONG_MAX - 1000000 * ts.tv_sec)
 		return -1;
 
 	return ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
 }
 
-double difftime(time_t a, time_t b) {
-	return a - b;
-}
+double difftime(time_t a, time_t b) { return a - b; }
 
-time_t mktime(struct tm *tm) {
-	return timegm(tm);
-}
+time_t mktime(struct tm *tm) { return timegm(tm); }
 
 /* There is no other implemented value than TIME_UTC; all other values
  * are considered erroneous. */
 // Function taken from musl
 int timespec_get(struct timespec *ts, int base) {
-	if(base != TIME_UTC)
+	if (base != TIME_UTC)
 		return 0;
 	int ret = clock_gettime(CLOCK_REALTIME, ts);
 	return ret < 0 ? 0 : base;
@@ -89,7 +88,7 @@ char *asctime(const struct tm *ptr) {
 
 char *ctime(const time_t *timer) {
 	struct tm *tm = localtime(timer);
-	if(!tm) {
+	if (!tm) {
 		return nullptr;
 	}
 	return asctime(tm);
@@ -129,7 +128,7 @@ namespace {
 // Given a pointer to a timezone string, extract a number and check if it's in
 // range; if it's not, return NULL. Otherwise, return a pointer to the first
 // character not part of the number.
-template<typename T>
+template <typename T>
 const char *getnum(const char *str, T *nump, T min, T max) {
 	if (str == nullptr || !isdigit(*str))
 		return nullptr;
@@ -191,9 +190,9 @@ const char *getoffset(const char *str, long *offset) {
 }
 
 enum RuleType {
-	TZFILE, // mlibc-internal rule type for TZ files
-	JULIAN_DAY, // Jn = Julian day
-	DAY_OF_YEAR, // n = day of year
+	TZFILE,                // mlibc-internal rule type for TZ files
+	JULIAN_DAY,            // Jn = Julian day
+	DAY_OF_YEAR,           // n = day of year
 	MONTH_NTH_DAY_OF_WEEK, // Mm.n.d = month, week, day of week
 };
 
@@ -248,7 +247,7 @@ const char *getrule(const char *str, Rule *rule) {
 	return str;
 }
 
-struct[[gnu::packed]] ttinfo {
+struct [[gnu::packed]] ttinfo {
 	int32_t tt_gmtoff;
 	unsigned char tt_isdst;
 	unsigned char tt_abbrind;
@@ -434,7 +433,7 @@ frg::string<MemoryAllocator> parse_tzfile_path(const char *tz) {
 	if (*tz == ':')
 		tz++;
 
-	frg::string<MemoryAllocator> path {getAllocator()};
+	frg::string<MemoryAllocator> path{getAllocator()};
 	// TODO: generic path helpers in options/internal?
 	if (*tz == '/') {
 		path += tz;
@@ -442,7 +441,8 @@ frg::string<MemoryAllocator> parse_tzfile_path(const char *tz) {
 		// FIXME: Figure out what we actually need to do in this case, consider
 		//        supporting relative paths or defaulting to UTC instead.
 		mlibc::infoLogger() << "mlibc: relative path in TZ not supported, "
-			"defaulting to /etc/localtime" << frg::endlog;
+		                       "defaulting to /etc/localtime"
+		                    << frg::endlog;
 		path += "/etc/localtime";
 	} else {
 		const char *tzdir = getenv("TZDIR");
@@ -450,7 +450,8 @@ frg::string<MemoryAllocator> parse_tzfile_path(const char *tz) {
 			tzdir = "/usr/share/zoneinfo";
 		} else if (*tzdir != '/') {
 			mlibc::infoLogger() << "mlibc: non-absolute path in TZDIR not "
-				"supported, defaulting to /usr/share/zoneinfo" << frg::endlog;
+			                       "supported, defaulting to /usr/share/zoneinfo"
+			                    << frg::endlog;
 			tzdir = "/usr/share/zoneinfo";
 		}
 
@@ -475,7 +476,7 @@ bool parse_tzfile(const char *tz) {
 		return true;
 
 	// FIXME: Make this fallible so the above check is not needed.
-	file_window window {path.data()};
+	file_window window{path.data()};
 
 	// TODO(geert): we can probably cache this somehow
 	tzfile tzfile_time;
@@ -488,14 +489,13 @@ bool parse_tzfile(const char *tz) {
 	tzfile_time.tzh_charcnt = mlibc::bit_util<uint32_t>::be_to_host(tzfile_time.tzh_charcnt);
 
 	if (tzfile_time.magic[0] != 'T' || tzfile_time.magic[1] != 'Z' || tzfile_time.magic[2] != 'i'
-			|| tzfile_time.magic[3] != 'f') {
+	    || tzfile_time.magic[3] != 'f') {
 		mlibc::infoLogger() << "mlibc: " << path << " is not a valid TZinfo file" << frg::endlog;
 		return true;
 	}
 
 	if (tzfile_time.version != '\0' && tzfile_time.version != '2' && tzfile_time.version != '3') {
-		mlibc::infoLogger() << "mlibc: " << path << " has an invalid TZinfo version"
-				<< frg::endlog;
+		mlibc::infoLogger() << "mlibc: " << path << " has an invalid TZinfo version" << frg::endlog;
 		return true;
 	}
 
@@ -504,18 +504,21 @@ bool parse_tzfile(const char *tz) {
 		return true;
 
 	char *abbrevs = reinterpret_cast<char *>(window.get()) + sizeof(tzfile)
-		+ tzfile_time.tzh_timecnt * sizeof(int32_t)
-		+ tzfile_time.tzh_timecnt * sizeof(uint8_t)
-		+ tzfile_time.tzh_typecnt * sizeof(struct ttinfo);
+	                + tzfile_time.tzh_timecnt * sizeof(int32_t)
+	                + tzfile_time.tzh_timecnt * sizeof(uint8_t)
+	                + tzfile_time.tzh_typecnt * sizeof(struct ttinfo);
 	bool found_std = false;
 	bool found_dst = false;
 	// start from the last ttinfo entry, this matches the behaviour of glibc and musl
 	for (int i = tzfile_time.tzh_typecnt; i > 0; i--) {
 		ttinfo time_info;
-		memcpy(&time_info, reinterpret_cast<char *>(window.get()) + sizeof(tzfile)
-				+ tzfile_time.tzh_timecnt * sizeof(int32_t)
-				+ tzfile_time.tzh_timecnt * sizeof(uint8_t)
-				+ i * sizeof(ttinfo), sizeof(ttinfo));
+		memcpy(
+		    &time_info,
+		    reinterpret_cast<char *>(window.get()) + sizeof(tzfile)
+		        + tzfile_time.tzh_timecnt * sizeof(int32_t)
+		        + tzfile_time.tzh_timecnt * sizeof(uint8_t) + i * sizeof(ttinfo),
+		    sizeof(ttinfo)
+		);
 		time_info.tt_gmtoff = mlibc::bit_util<uint32_t>::be_to_host(time_info.tt_gmtoff);
 		if (!time_info.tt_isdst && !found_std) {
 			tznameStorage[tznameNormal] = {abbrevs + time_info.tt_abbrind, getAllocator()};
@@ -557,8 +560,8 @@ void do_tzset(void) {
 #endif
 
 	// 1 byte for null
-	char *tz_name = (char *) malloc(tz_name_max + 1);
-	char *tz_name_dst = (char *) malloc(tz_name_max + 1);
+	char *tz_name = (char *)malloc(tz_name_max + 1);
+	char *tz_name_dst = (char *)malloc(tz_name_max + 1);
 	memset(tz_name, 0, tz_name_max + 1);
 	memset(tz_name_dst, 0, tz_name_max + 1);
 
@@ -613,7 +616,7 @@ int nanosleep(const struct timespec *req, struct timespec *rem) {
 }
 
 int clock_getres(clockid_t clockid, struct timespec *res) {
-	if(int e = mlibc::sysdep_or_enosys<ClockGetres>(clockid, &res->tv_sec, &res->tv_nsec); e) {
+	if (int e = mlibc::sysdep_or_enosys<ClockGetres>(clockid, &res->tv_sec, &res->tv_nsec); e) {
 		errno = e;
 		return -1;
 	}
@@ -621,20 +624,21 @@ int clock_getres(clockid_t clockid, struct timespec *res) {
 }
 
 int clock_gettime(clockid_t clock, struct timespec *time) {
-	if(int e = mlibc::sysdep<ClockGet>(clock, &time->tv_sec, &time->tv_nsec); e) {
+	if (int e = mlibc::sysdep<ClockGet>(clock, &time->tv_sec, &time->tv_nsec); e) {
 		errno = e;
 		return -1;
 	}
 	return 0;
 }
 
-int clock_nanosleep(clockid_t clockid, int flags, const struct timespec *req, struct timespec *rem) {
+int
+clock_nanosleep(clockid_t clockid, int flags, const struct timespec *req, struct timespec *rem) {
 	__ensure(clockid == CLOCK_REALTIME || clockid == CLOCK_MONOTONIC);
 
 	if (flags & TIMER_ABSTIME) {
 		time_t secs = 0;
 		long nanos = 0;
-		if(int e = mlibc::sysdep<ClockGet>(clockid, &secs, &nanos); e) {
+		if (int e = mlibc::sysdep<ClockGet>(clockid, &secs, &nanos); e) {
 			errno = e;
 			return -1;
 		}
@@ -661,7 +665,7 @@ int clock_nanosleep(clockid_t clockid, int flags, const struct timespec *req, st
 }
 
 int clock_settime(clockid_t clock, const struct timespec *time) {
-	if(int e = mlibc::sysdep_or_enosys<ClockSet>(clock, time->tv_sec, time->tv_nsec); e) {
+	if (int e = mlibc::sysdep_or_enosys<ClockSet>(clock, time->tv_sec, time->tv_nsec); e) {
 		errno = e;
 		return -1;
 	}
@@ -671,11 +675,11 @@ int clock_settime(clockid_t clock, const struct timespec *time) {
 time_t time(time_t *out) {
 	time_t secs;
 	long nanos;
-	if(int e = mlibc::sysdep<ClockGet>(CLOCK_REALTIME, &secs, &nanos); e) {
+	if (int e = mlibc::sysdep<ClockGet>(CLOCK_REALTIME, &secs, &nanos); e) {
 		errno = e;
 		return (time_t)-1;
 	}
-	if(out)
+	if (out)
 		*out = secs;
 	return secs;
 }
@@ -686,11 +690,11 @@ void civil_from_days(time_t days_since_epoch, int *year, unsigned int *month, un
 	time_t time = days_since_epoch + 719468;
 	int era = (time >= 0 ? time : time - 146096) / 146097;
 	unsigned int doe = static_cast<unsigned int>(time - era * 146097);
-	unsigned int yoe = (doe - doe/1460 + doe/36524 - doe/146096) / 365;
+	unsigned int yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
 	int y = static_cast<int>(yoe) + era * 400;
-	unsigned int doy = doe - (365*yoe + yoe/4 - yoe/100);
-	unsigned int mp = (5*doy + 2)/153;
-	unsigned int d = doy - (153*mp+2)/5 + 1;
+	unsigned int doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+	unsigned int mp = (5 * doy + 2) / 153;
+	unsigned int d = doy - (153 * mp + 2) / 5 + 1;
 	unsigned int m = mp + (mp < 10 ? 3 : -9);
 
 	*year = y + (m <= 2);
@@ -699,11 +703,13 @@ void civil_from_days(time_t days_since_epoch, int *year, unsigned int *month, un
 }
 
 void weekday_from_days(time_t days_since_epoch, unsigned int *weekday) {
-	*weekday = static_cast<unsigned int>(days_since_epoch >= -4 ?
-			(days_since_epoch+4) % 7 : (days_since_epoch+5) % 7 + 6);
+	*weekday = static_cast<unsigned int>(
+	    days_since_epoch >= -4 ? (days_since_epoch + 4) % 7 : (days_since_epoch + 5) % 7 + 6
+	);
 }
 
-void yearday_from_date(unsigned int year, unsigned int month, unsigned int day, unsigned int *yday) {
+void
+yearday_from_date(unsigned int year, unsigned int month, unsigned int day, unsigned int *yday) {
 	unsigned int n1 = 275 * month / 9;
 	unsigned int n2 = (month + 9) / 12;
 	unsigned int n3 = (1 + (year - 4 * year / 4 + 2) / 3);
@@ -767,7 +773,7 @@ time_t time_from_rule(const Rule &rule, int year) {
 // Assumes TZ environment variable rules are used, not TZFILE.
 bool is_in_dst(time_t unix_gmt) {
 	if (rules[0].type == TZFILE)
-	    __ensure(!"is_in_dst() called with invalid rules");
+		__ensure(!"is_in_dst() called with invalid rules");
 
 	int year;
 	unsigned int _month;
@@ -787,7 +793,9 @@ bool is_in_dst(time_t unix_gmt) {
 	}
 }
 
-int unix_local_from_gmt_tzfile(time_t unix_gmt, time_t *offset, bool *dst, frg::string<MemoryAllocator> &tm_zone) {
+int unix_local_from_gmt_tzfile(
+    time_t unix_gmt, time_t *offset, bool *dst, frg::string<MemoryAllocator> &tm_zone
+) {
 	const char *tz = getenv("TZ");
 
 	if (!tz || *tz == '\0')
@@ -805,7 +813,7 @@ int unix_local_from_gmt_tzfile(time_t unix_gmt, time_t *offset, bool *dst, frg::
 		return -1;
 
 	// FIXME: Make this fallible so the above check is not needed.
-	file_window window {path.data()};
+	file_window window{path.data()};
 
 	// TODO(geert): we can probably cache this somehow
 	tzfile tzfile_time;
@@ -818,22 +826,24 @@ int unix_local_from_gmt_tzfile(time_t unix_gmt, time_t *offset, bool *dst, frg::
 	tzfile_time.tzh_charcnt = mlibc::bit_util<uint32_t>::be_to_host(tzfile_time.tzh_charcnt);
 
 	if (tzfile_time.magic[0] != 'T' || tzfile_time.magic[1] != 'Z' || tzfile_time.magic[2] != 'i'
-			|| tzfile_time.magic[3] != 'f') {
+	    || tzfile_time.magic[3] != 'f') {
 		mlibc::infoLogger() << "mlibc: " << path << " is not a valid TZinfo file" << frg::endlog;
 		return -1;
 	}
 
 	if (tzfile_time.version != '\0' && tzfile_time.version != '2' && tzfile_time.version != '3') {
-		mlibc::infoLogger() << "mlibc: " << path << " has an invalid TZinfo version"
-				<< frg::endlog;
+		mlibc::infoLogger() << "mlibc: " << path << " has an invalid TZinfo version" << frg::endlog;
 		return -1;
 	}
 
 	int index = -1;
 	for (size_t i = 0; i < tzfile_time.tzh_timecnt; i++) {
 		int32_t ttime;
-		memcpy(&ttime, reinterpret_cast<char *>(window.get()) + sizeof(tzfile)
-				+ i * sizeof(int32_t), sizeof(int32_t));
+		memcpy(
+		    &ttime,
+		    reinterpret_cast<char *>(window.get()) + sizeof(tzfile) + i * sizeof(int32_t),
+		    sizeof(int32_t)
+		);
 		ttime = mlibc::bit_util<uint32_t>::be_to_host(ttime);
 		// If we are before the first transition, the format dicates that
 		// the first ttinfo entry should be used (and not the ttinfo entry pointed
@@ -848,9 +858,12 @@ int unix_local_from_gmt_tzfile(time_t unix_gmt, time_t *offset, bool *dst, frg::
 	// the first entry in the file is chosen.
 	uint8_t ttinfo_index = 0;
 	if (index >= 0) {
-		memcpy(&ttinfo_index, reinterpret_cast<char *>(window.get()) + sizeof(tzfile)
-				+ tzfile_time.tzh_timecnt * sizeof(int32_t)
-				+ index * sizeof(uint8_t), sizeof(uint8_t));
+		memcpy(
+		    &ttinfo_index,
+		    reinterpret_cast<char *>(window.get()) + sizeof(tzfile)
+		        + tzfile_time.tzh_timecnt * sizeof(int32_t) + index * sizeof(uint8_t),
+		    sizeof(uint8_t)
+		);
 	}
 
 	// There should be at least one entry in the ttinfo table.
@@ -858,16 +871,19 @@ int unix_local_from_gmt_tzfile(time_t unix_gmt, time_t *offset, bool *dst, frg::
 	__ensure(tzfile_time.tzh_typecnt);
 
 	ttinfo time_info;
-	memcpy(&time_info, reinterpret_cast<char *>(window.get()) + sizeof(tzfile)
-			+ tzfile_time.tzh_timecnt * sizeof(int32_t)
-			+ tzfile_time.tzh_timecnt * sizeof(uint8_t)
-			+ ttinfo_index * sizeof(ttinfo), sizeof(ttinfo));
+	memcpy(
+	    &time_info,
+	    reinterpret_cast<char *>(window.get()) + sizeof(tzfile)
+	        + tzfile_time.tzh_timecnt * sizeof(int32_t) + tzfile_time.tzh_timecnt * sizeof(uint8_t)
+	        + ttinfo_index * sizeof(ttinfo),
+	    sizeof(ttinfo)
+	);
 	time_info.tt_gmtoff = mlibc::bit_util<uint32_t>::be_to_host(time_info.tt_gmtoff);
 
 	char *abbrevs = reinterpret_cast<char *>(window.get()) + sizeof(tzfile)
-		+ tzfile_time.tzh_timecnt * sizeof(int32_t)
-		+ tzfile_time.tzh_timecnt * sizeof(uint8_t)
-		+ tzfile_time.tzh_typecnt * sizeof(struct ttinfo);
+	                + tzfile_time.tzh_timecnt * sizeof(int32_t)
+	                + tzfile_time.tzh_timecnt * sizeof(uint8_t)
+	                + tzfile_time.tzh_typecnt * sizeof(struct ttinfo);
 
 	*offset = time_info.tt_gmtoff;
 	*dst = time_info.tt_isdst;
@@ -901,7 +917,7 @@ int unix_local_from_gmt(time_t unix_gmt, time_t *offset, bool *dst, char **tm_zo
 	return 0;
 }
 
-} //anonymous namespace
+} // anonymous namespace
 
 struct tm *gmtime_r(const time_t *unix_gmt, struct tm *res) {
 	int year;
@@ -912,14 +928,14 @@ struct tm *gmtime_r(const time_t *unix_gmt, struct tm *res) {
 
 	time_t unix_local = *unix_gmt;
 
-	int days_since_epoch = unix_local / (60*60*24);
+	int days_since_epoch = unix_local / (60 * 60 * 24);
 	civil_from_days(days_since_epoch, &year, &month, &day);
 	weekday_from_days(days_since_epoch, &weekday);
 	yearday_from_date(year, month, day, &yday);
 
 	res->tm_sec = unix_local % 60;
 	res->tm_min = (unix_local / 60) % 60;
-	res->tm_hour = (unix_local / (60*60)) % 24;
+	res->tm_hour = (unix_local / (60 * 60)) % 24;
 	res->tm_mday = day;
 	res->tm_mon = month - 1;
 	res->tm_year = year - 1900;
@@ -944,20 +960,20 @@ struct tm *localtime_r(const time_t *unix_gmt, struct tm *res) {
 	char *tm_zone;
 	frg::unique_lock<FutexLock> lock(__time_lock);
 	// TODO: Set errno if the conversion fails.
-	if(unix_local_from_gmt(*unix_gmt, &offset, &dst, &tm_zone)) {
+	if (unix_local_from_gmt(*unix_gmt, &offset, &dst, &tm_zone)) {
 		__ensure(!"Error parsing /etc/localtime");
 		__builtin_unreachable();
 	}
 	time_t unix_local = *unix_gmt + offset;
 
-	int days_since_epoch = unix_local / (60*60*24);
+	int days_since_epoch = unix_local / (60 * 60 * 24);
 	civil_from_days(days_since_epoch, &year, &month, &day);
 	weekday_from_days(days_since_epoch, &weekday);
 	yearday_from_date(year, month, day, &yday);
 
 	res->tm_sec = unix_local % 60;
 	res->tm_min = (unix_local / 60) % 60;
-	res->tm_hour = (unix_local / (60*60)) % 24;
+	res->tm_hour = (unix_local / (60 * 60)) % 24;
 	res->tm_mday = day;
 	res->tm_mon = month - 1;
 	res->tm_year = year - 1900;
@@ -972,25 +988,25 @@ struct tm *localtime_r(const time_t *unix_gmt, struct tm *res) {
 
 // This implementation of asctime_r is taken from sortix
 char *asctime_r(const struct tm *tm, char *buf) {
-	static char weekday_names[7][4] =
-		{ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-	static char month_names[12][4] =
-		{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
-		  "Nov", "Dec" };
-	sprintf(buf, "%.3s %.3s%3d %.2d:%.2d:%.2d %d\n",
-				 weekday_names[tm->tm_wday],
-				 month_names[tm->tm_mon],
-				 tm->tm_mday,
-				 tm->tm_hour,
-				 tm->tm_min,
-				 tm->tm_sec,
-				 tm->tm_year + 1900);
+	static char weekday_names[7][4] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+	static char month_names[12][4] = {
+	    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+	};
+	sprintf(
+	    buf,
+	    "%.3s %.3s%3d %.2d:%.2d:%.2d %d\n",
+	    weekday_names[tm->tm_wday],
+	    month_names[tm->tm_mon],
+	    tm->tm_mday,
+	    tm->tm_hour,
+	    tm->tm_min,
+	    tm->tm_sec,
+	    tm->tm_year + 1900
+	);
 	return buf;
 }
 
-char *ctime_r(const time_t *clock, char *buf) {
-	return asctime_r(localtime(clock), buf);
-}
+char *ctime_r(const time_t *clock, char *buf) { return asctime_r(localtime(clock), buf); }
 
 time_t timelocal(struct tm *) {
 	__ensure(!"Not implemented");
@@ -1000,9 +1016,9 @@ time_t timelocal(struct tm *) {
 constexpr static int days_from_civil(int y, unsigned m, unsigned d) noexcept {
 	y -= m <= 2;
 	const int era = (y >= 0 ? y : y - 399) / 400;
-	const unsigned yoe = static_cast<unsigned>(y - era * 400); // [0, 399]
+	const unsigned yoe = static_cast<unsigned>(y - era * 400);            // [0, 399]
 	const unsigned doy = (153 * (m > 2 ? m - 3 : m + 9) + 2) / 5 + d - 1; // [0, 365]
-	const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy; // [0, 146096]
+	const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;           // [0, 146096]
 	return era * 146097 + static_cast<int>(doe) - 719468;
 }
 

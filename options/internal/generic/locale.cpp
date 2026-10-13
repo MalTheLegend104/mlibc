@@ -1,16 +1,20 @@
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <frg/allocation.hpp>
 #include <frg/hash_map.hpp>
-#include <frg/scope_exit.hpp>
 #include <frg/safe_int.hpp>
+#include <frg/scope_exit.hpp>
 #include <frg/vector.hpp>
 #include <locale.h>
-#include <smarter.hpp>
 #include <mlibc-config.h>
 #include <mlibc/ctype.hpp>
 #include <mlibc/file-window.hpp>
 #include <mlibc/global-config.hpp>
 #include <mlibc/locale-archive-parsing.hpp>
 #include <mlibc/locale.hpp>
+#include <smarter.hpp>
 #include <stdlib.h>
 
 namespace {
@@ -26,11 +30,11 @@ smarter::shared_ptr<file_window> localeArchive;
 
 // map of (locale name, mapping)
 frg::hash_map<
-	frg::string<MemoryAllocator>,
-	smarter::shared_ptr<file_window>,
-	frg::hash<frg::string<MemoryAllocator>>,
-	MemoryAllocator
-> localeFiles{frg::hash<frg::string<MemoryAllocator>>(), getAllocator()};
+    frg::string<MemoryAllocator>,
+    smarter::shared_ptr<file_window>,
+    frg::hash<frg::string<MemoryAllocator>>,
+    MemoryAllocator>
+    localeFiles{frg::hash<frg::string<MemoryAllocator>>(), getAllocator()};
 
 // value of LOCPATH environment variable, if set
 frg::string<MemoryAllocator> cachedLocpath{getAllocator()};
@@ -38,27 +42,27 @@ frg::string<MemoryAllocator> cachedLocpath{getAllocator()};
 frg::vector<frg::string<MemoryAllocator>, MemoryAllocator> locpaths{getAllocator()};
 
 std::array<const char *, 13> lcNames{
-	"LC_CTYPE",
-	"LC_NUMERIC",
-	"LC_TIME",
-	"LC_COLLATE",
-	"LC_MONETARY",
-	"LC_MESSAGES",
-	"LC_ALL",
-	"LC_PAPER",
-	"LC_NAME",
-	"LC_ADDRESS",
-	"LC_TELEPHONE",
-	"LC_MEASUREMENT",
-	"LC_IDENTIFICATION",
+    "LC_CTYPE",
+    "LC_NUMERIC",
+    "LC_TIME",
+    "LC_COLLATE",
+    "LC_MONETARY",
+    "LC_MESSAGES",
+    "LC_ALL",
+    "LC_PAPER",
+    "LC_NAME",
+    "LC_ADDRESS",
+    "LC_TELEPHONE",
+    "LC_MEASUREMENT",
+    "LC_IDENTIFICATION",
 };
 
 using DecomposedLocale = std::tuple<
-	std::optional<frg::string_view>, // language
-	std::optional<frg::string_view>, // territory
-	std::optional<frg::string_view>, // codeset
-	std::optional<frg::string_view> // modifier
->;
+    std::optional<frg::string_view>, // language
+    std::optional<frg::string_view>, // territory
+    std::optional<frg::string_view>, // codeset
+    std::optional<frg::string_view>  // modifier
+    >;
 
 frg::string<MemoryAllocator> normalizeCodeset(frg::string_view codeset) {
 	bool only_digit = true;
@@ -73,7 +77,7 @@ frg::string<MemoryAllocator> normalizeCodeset(frg::string_view codeset) {
 	if (only_digit)
 		normalized += "iso";
 
-	for(size_t i = 0; i < codeset.size(); i++) {
+	for (size_t i = 0; i < codeset.size(); i++) {
 		if (mlibc::isalpha_l(codeset[i], &cLocale))
 			normalized.push_back(tolower_l(codeset[i], &cLocale));
 		else if (mlibc::isdigit_l(codeset[i], &cLocale))
@@ -261,7 +265,8 @@ frg::vector<frg::string<MemoryAllocator>, MemoryAllocator> buildLocaleList(Decom
 }
 
 // Parse a composite locale string into its constituents, if applicable.
-std::optional<std::array<frg::string_view, LC_IDENTIFICATION + 1>> parseCompositeLocaleName(frg::string_view str) {
+std::optional<std::array<frg::string_view, LC_IDENTIFICATION + 1>>
+parseCompositeLocaleName(frg::string_view str) {
 	size_t offset = 0;
 
 	std::array<frg::string_view, LC_IDENTIFICATION + 1> parsed;
@@ -311,14 +316,14 @@ void openLocaleDatabase() {
 			cachedLocpath = {locpath, getAllocator()};
 			size_t off = 0;
 			size_t end = 0;
-			while(end != size_t(-1)) {
-				auto view = frg::string_view{cachedLocpath}.sub_string(off, cachedLocpath.size() - off);
+			while (end != size_t(-1)) {
+				auto view =
+				    frg::string_view{cachedLocpath}.sub_string(off, cachedLocpath.size() - off);
 				end = view.find_first(':');
 				locpaths.push_back(
-					frg::string<MemoryAllocator>{
-						view.sub_string(0, (end == size_t(-1)) ? view.size() : end),
-						getAllocator()
-					}
+				    frg::string<MemoryAllocator>{
+				        view.sub_string(0, (end == size_t(-1)) ? view.size() : end), getAllocator()
+				    }
 				);
 				if (end != static_cast<size_t>(-1))
 					off += end + 1;
@@ -335,10 +340,13 @@ void openLocaleDatabase() {
 		return;
 
 	struct stat info;
-	if (mlibc::sysdep_or_enosys<Stat>(mlibc::fsfd_target::path, -1, "/usr/lib/locale/locale-archive", 0, &info))
+	if (mlibc::sysdep_or_enosys<Stat>(
+	        mlibc::fsfd_target::path, -1, "/usr/lib/locale/locale-archive", 0, &info
+	    ))
 		return;
 
-	auto window = smarter::allocate_shared<file_window>(getAllocator(), "/usr/lib/locale/locale-archive");
+	auto window =
+	    smarter::allocate_shared<file_window>(getAllocator(), "/usr/lib/locale/locale-archive");
 	if (window->size() < sizeof(LocaleArchive::Header))
 		return;
 
@@ -358,11 +366,12 @@ frg::optional<off_t> findLocaleRecord(frg::string_view name) {
 	auto header = static_cast<LocaleArchive::Header *>(localeArchive->get());
 
 	size_t namehash_total;
-	if (!frg::checked_mul(sizeof(LocaleArchive::NameHashEntry), size_t{header->namehash_size}, namehash_total))
+	if (!frg::checked_mul(
+	        sizeof(LocaleArchive::NameHashEntry), size_t{header->namehash_size}, namehash_total
+	    ))
 		return frg::null_opt;
 
-	if (header->namehash_size <= 2
-	    || header->namehash_offset > localeArchive->size()
+	if (header->namehash_size <= 2 || header->namehash_offset > localeArchive->size()
 	    || namehash_total > (localeArchive->size() - header->namehash_offset))
 		return frg::null_opt;
 
@@ -398,7 +407,8 @@ frg::optional<off_t> findLocaleRecord(frg::string_view name) {
 			if (namehashtab[idx].hashval == hash && e == current_entry_name) {
 				if (namehashtab[idx].locrec_offset == 0)
 					return frg::null_opt;
-				if (namehashtab[idx].locrec_offset > localeArchive->size() - sizeof(LocaleArchive::LocaleRecord))
+				if (namehashtab[idx].locrec_offset
+				    > localeArchive->size() - sizeof(LocaleArchive::LocaleRecord))
 					return frg::null_opt;
 
 				return frg::optional<off_t>{namehashtab[idx].locrec_offset};
@@ -413,7 +423,9 @@ frg::optional<off_t> findLocaleRecord(frg::string_view name) {
 	return frg::null_opt;
 }
 
-bool parseCategoryInfo(int category, frg::string_view name, frg::span<const uint8_t> rec, mlibc::localeinfo *out) {
+bool parseCategoryInfo(
+    int category, frg::string_view name, frg::span<const uint8_t> rec, mlibc::localeinfo *out
+) {
 	if (rec.size_bytes() < 8)
 		return false;
 
@@ -434,7 +446,7 @@ bool parseCategoryInfo(int category, frg::string_view name, frg::span<const uint
 
 	frg::span<const uint32_t> offsets{reinterpret_cast<const uint32_t *>(rec.data() + 8), elements};
 
-	switch(category) {
+	switch (category) {
 		case LC_CTYPE: {
 			parse_category_array(out->ctype.members, ctype_parser, rec, offsets);
 			out->ctype.data = rec;
@@ -498,7 +510,8 @@ bool parseCategoryInfo(int category, frg::string_view name, frg::span<const uint
 			break;
 		}
 		default:
-			mlibc::infoLogger() << "mlibc: category " << lcNames[category] << " unknown!" << frg::endlog;
+			mlibc::infoLogger() << "mlibc: category " << lcNames[category] << " unknown!"
+			                    << frg::endlog;
 			return false;
 	}
 
@@ -523,17 +536,29 @@ bool findLocaleFileRecord(int category, frg::string_view name, mlibc::localeinfo
 			auto e = localeFiles.find(path);
 			if (e != localeFiles.end()) {
 				auto &[localeName, window] = *e;
-				if (parseCategoryInfo(category, locale, {static_cast<const uint8_t *>(window->get()), window->size()}, out))
+				if (parseCategoryInfo(
+				        category,
+				        locale,
+				        {static_cast<const uint8_t *>(window->get()), window->size()},
+				        out
+				    ))
 					return true;
 			} else {
 				struct stat info;
-				if (mlibc::sysdep_or_enosys<Stat>(mlibc::fsfd_target::path, -1, path.data(), 0, &info))
+				if (mlibc::sysdep_or_enosys<Stat>(
+				        mlibc::fsfd_target::path, -1, path.data(), 0, &info
+				    ))
 					continue;
 
 				auto window = smarter::allocate_shared<file_window>(getAllocator(), path.data());
 				localeFiles.insert(path, window);
 
-				if (parseCategoryInfo(category, locale, {static_cast<const uint8_t *>(window->get()), window->size()}, out)) {
+				if (parseCategoryInfo(
+				        category,
+				        locale,
+				        {static_cast<const uint8_t *>(window->get()), window->size()},
+				        out
+				    )) {
 					return true;
 				}
 			}
@@ -552,20 +577,23 @@ bool findLocaleArchiveRecord(int category, frg::string_view name, mlibc::localei
 	auto recordOff = findLocaleRecord(name);
 	if (!recordOff) {
 		if (mlibc::globalConfig().debugLocale)
-			mlibc::infoLogger() << "mlibc: Locale '" << name
-				<< "' not found in locale database" << frg::endlog;
+			mlibc::infoLogger() << "mlibc: Locale '" << name << "' not found in locale database"
+			                    << frg::endlog;
 		return false;
 	}
 
-	auto locrec = reinterpret_cast<LocaleArchive::LocaleRecord *>((uint8_t *) localeArchive->get() + *recordOff);
+	auto locrec = reinterpret_cast<LocaleArchive::LocaleRecord *>(
+	    (uint8_t *)localeArchive->get() + *recordOff
+	);
 	if (locrec->record[category].offset == 0 || locrec->record[category].len == 0)
 		return false;
 
 	if (locrec->record[category].offset > localeArchive->size()
-			|| locrec->record[category].len > localeArchive->size() - locrec->record[category].offset)
+	    || locrec->record[category].len > localeArchive->size() - locrec->record[category].offset)
 		return false;
 
-	const uint8_t *record = reinterpret_cast<const uint8_t *>(localeArchive->get()) + locrec->record[category].offset;
+	const uint8_t *record =
+	    reinterpret_cast<const uint8_t *>(localeArchive->get()) + locrec->record[category].offset;
 	frg::span<const uint8_t> rec{record, locrec->record[category].len};
 
 	return parseCategoryInfo(category, name, rec, out);
@@ -577,20 +605,33 @@ namespace mlibc {
 
 frg::string<MemoryAllocator> &localeinfo::getCategoryLocaleName(int category) {
 	switch (category) {
-		case LC_CTYPE: return ctype.localeName;
-		case LC_NUMERIC: return numeric.localeName;
-		case LC_TIME: return time.localeName;
-		case LC_COLLATE: return collate.localeName;
-		case LC_MONETARY: return monetary.localeName;
-		case LC_MESSAGES: return messages.localeName;
-		case LC_PAPER: return paper.localeName;
-		case LC_NAME: return name.localeName;
-		case LC_ADDRESS: return address.localeName;
-		case LC_TELEPHONE: return telephone.localeName;
-		case LC_MEASUREMENT: return measurement.localeName;
-		case LC_IDENTIFICATION: return identification.localeName;
+		case LC_CTYPE:
+			return ctype.localeName;
+		case LC_NUMERIC:
+			return numeric.localeName;
+		case LC_TIME:
+			return time.localeName;
+		case LC_COLLATE:
+			return collate.localeName;
+		case LC_MONETARY:
+			return monetary.localeName;
+		case LC_MESSAGES:
+			return messages.localeName;
+		case LC_PAPER:
+			return paper.localeName;
+		case LC_NAME:
+			return name.localeName;
+		case LC_ADDRESS:
+			return address.localeName;
+		case LC_TELEPHONE:
+			return telephone.localeName;
+		case LC_MEASUREMENT:
+			return measurement.localeName;
+		case LC_IDENTIFICATION:
+			return identification.localeName;
 		// special case: for LC_ALL, return the catch-all localeName
-		case LC_ALL: return localeName;
+		case LC_ALL:
+			return localeName;
 	}
 
 	__builtin_unreachable();
@@ -600,18 +641,42 @@ void localeinfo::resetCategory(int category) {
 	__ensure(category != LC_ALL);
 
 	switch (category) {
-		case LC_CTYPE: ctype = {}; break;
-		case LC_NUMERIC: numeric = {}; break;
-		case LC_TIME: time = {}; break;
-		case LC_COLLATE: collate = {}; break;
-		case LC_MONETARY: monetary = {}; break;
-		case LC_MESSAGES: messages = {}; break;
-		case LC_PAPER: paper = {}; break;
-		case LC_NAME: name = {}; break;
-		case LC_ADDRESS: address = {}; break;
-		case LC_TELEPHONE: telephone = {}; break;
-		case LC_MEASUREMENT: measurement = {}; break;
-		case LC_IDENTIFICATION: identification = {}; break;
+		case LC_CTYPE:
+			ctype = {};
+			break;
+		case LC_NUMERIC:
+			numeric = {};
+			break;
+		case LC_TIME:
+			time = {};
+			break;
+		case LC_COLLATE:
+			collate = {};
+			break;
+		case LC_MONETARY:
+			monetary = {};
+			break;
+		case LC_MESSAGES:
+			messages = {};
+			break;
+		case LC_PAPER:
+			paper = {};
+			break;
+		case LC_NAME:
+			name = {};
+			break;
+		case LC_ADDRESS:
+			address = {};
+			break;
+		case LC_TELEPHONE:
+			telephone = {};
+			break;
+		case LC_MEASUREMENT:
+			measurement = {};
+			break;
+		case LC_IDENTIFICATION:
+			identification = {};
+			break;
 	}
 }
 
@@ -697,7 +762,7 @@ bool applyCategory(int category, frg::string_view name, localeinfo *info) {
 				break;
 			default:
 				mlibc::infoLogger() << "mlibc: unhandled defaults for category "
-					<< lcNames[category] << " in C/POSIX locale" << frg::endlog;
+				                    << lcNames[category] << " in C/POSIX locale" << frg::endlog;
 				return false;
 		}
 
@@ -720,7 +785,7 @@ bool applyCategory(int category, frg::string_view name, localeinfo *info) {
 // Otherwise, the locale object in `base` is modified.
 // `name` can be a locale name or a composite.
 int loadLocale(int category_mask, frg::string_view name, localeinfo **base) {
-	if((category_mask & LC_ALL_MASK) != category_mask)
+	if ((category_mask & LC_ALL_MASK) != category_mask)
 		return EINVAL;
 
 	if ((name == "POSIX" || name == "C") && category_mask == LC_ALL_MASK) {
@@ -739,11 +804,11 @@ int loadLocale(int category_mask, frg::string_view name, localeinfo **base) {
 
 	bool error = false;
 
-	while(category_mask) {
+	while (category_mask) {
 		auto mlibc_cat = __builtin_ctz(category_mask);
 		__ensure(mlibc_cat != LC_ALL);
 
-		frg::string_view cat_name = [&] () {
+		frg::string_view cat_name = [&]() {
 			if (composite) {
 				return composite.value()[mlibc_cat];
 			}
@@ -764,8 +829,9 @@ int loadLocale(int category_mask, frg::string_view name, localeinfo **base) {
 
 	if (error) {
 		if (mlibc::globalConfig().debugLocale)
-			mlibc::infoLogger() << "mlibc: Failed to load locale '" << (name.size() ? name : "(null)")
-				<< "' for category mask 0x" << frg::hex_fmt{category_mask} << frg::endlog;
+			mlibc::infoLogger() << "mlibc: Failed to load locale '"
+			                    << (name.size() ? name : "(null)") << "' for category mask 0x"
+			                    << frg::hex_fmt{category_mask} << frg::endlog;
 
 		if (!*base)
 			frg::destruct(getAllocator(), info);
@@ -780,7 +846,7 @@ int loadLocale(int category_mask, frg::string_view name, localeinfo **base) {
 #if __MLIBC_POSIX_OPTION
 localeinfo *useThreadLocalLocale(localeinfo *loc) {
 	localeinfo *old = current_locale ? current_locale : static_cast<localeinfo *>(LC_GLOBAL_LOCALE);
-	if(loc == LC_GLOBAL_LOCALE)
+	if (loc == LC_GLOBAL_LOCALE)
 		current_locale = nullptr;
 	else if (loc)
 		current_locale = reinterpret_cast<localeinfo *>(loc);
@@ -796,7 +862,7 @@ localeinfo *useGlobalLocale(localeinfo *loc) {
 }
 
 void freeLocale(localeinfo *loc) {
-	if(loc && loc != &startingLocale)
+	if (loc && loc != &startingLocale)
 		frg::destruct(getAllocator(), reinterpret_cast<localeinfo *>(loc));
 }
 
@@ -806,15 +872,11 @@ localeinfo *getActiveLocale() {
 	return current_global_locale;
 }
 
-localeinfo *getGlobalLocale() {
-	return current_global_locale;
-}
+localeinfo *getGlobalLocale() { return current_global_locale; }
 
-char *nl_langinfo(nl_item item) {
-	return nl_langinfo_l(item, mlibc::getActiveLocale());
-}
+char *nl_langinfo(nl_item item) { return nl_langinfo_l(item, mlibc::getActiveLocale()); }
 
-char *nl_langinfo_l(nl_item item, localeinfo * loc) {
+char *nl_langinfo_l(nl_item item, localeinfo *loc) {
 	__ensure(loc != nullptr);
 #ifdef LC_GLOBAL_LOCALE
 	__ensure(loc != LC_GLOBAL_LOCALE);
@@ -826,7 +888,7 @@ char *nl_langinfo_l(nl_item item, localeinfo * loc) {
 	if (item_num == 0xFFFF && category != LC_ALL)
 		return l->getCategoryLocaleName(category).data();
 
-	switch(item) {
+	switch (item) {
 		case CODESET:
 			return const_cast<char *>(l->ctype.get(CODESET).asString().data());
 
@@ -838,7 +900,9 @@ char *nl_langinfo_l(nl_item item, localeinfo * loc) {
 		case THOUSEP:
 			return const_cast<char *>(l->numeric.get(THOUSANDS_SEP).asString().data());
 		case GROUPING:
-			return const_cast<char *>(reinterpret_cast<const char *>(l->numeric.get(GROUPING).asByteSpan().data()));
+			return const_cast<char *>(
+			    reinterpret_cast<const char *>(l->numeric.get(GROUPING).asByteSpan().data())
+			);
 
 		case YESEXPR ... NOSTR:
 			return const_cast<char *>(l->messages.get(item).asString().data());
@@ -850,7 +914,8 @@ char *nl_langinfo_l(nl_item item, localeinfo * loc) {
 
 		default: {
 			mlibc::infoLogger() << "mlibc: nl_langinfo item " << frg::hex_fmt{item & 0xFFFF}
-				<< " of category " << lcNames[category] << " is missing" << frg::endlog;
+			                    << " of category " << lcNames[category] << " is missing"
+			                    << frg::endlog;
 			return const_cast<char *>("");
 		}
 	}
