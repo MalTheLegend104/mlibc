@@ -6,9 +6,9 @@
 #include <wallos/syscall.h>
 
 // ANCHOR: stub
-#define STUB()                                                                                     \
+#define STUB(msg)                                                                                  \
 	({                                                                                             \
-		__ensure(!"STUB function was called");                                                     \
+		__ensure(!"STUB function was called: " msg);                                               \
 		__builtin_unreachable();                                                                   \
 	})
 // ANCHOR_END: stub
@@ -21,7 +21,7 @@ namespace mlibc {
 static inline int status(long r) { return static_cast<int>(r); }
 
 void Sysdeps<LibcPanic>::operator()() {
-	sysdep<LibcLog>("!!! mlibc panic !!!");
+	// sysdep<LibcLog>("!!! mlibc panic !!!\r\n");
 	sysdep<Exit>(-1);
 	__builtin_trap();
 }
@@ -29,6 +29,7 @@ void Sysdeps<LibcPanic>::operator()() {
 void Sysdeps<LibcLog>::operator()(const char *msg) { syscall(SYS_DEBUG_LOG, msg, strlen(msg)); }
 
 void Sysdeps<Exit>::operator()(int code) {
+	sysdep<LibcLog>("!!! mlibc exit !!!\r\n");
 	syscall(SYS_EXIT, code);
 	__builtin_unreachable();
 }
@@ -41,6 +42,7 @@ int Sysdeps<Isatty>::operator()(int fd) {
 }
 
 int Sysdeps<Write>::operator()(int fd, void const *buf, size_t size, ssize_t *ret) {
+	STUB("Write");
 	size_t written = 0;
 	int err = status(syscall(SYS_WRITE, fd, buf, size, &written));
 	if (err == 0) {
@@ -50,6 +52,7 @@ int Sysdeps<Write>::operator()(int fd, void const *buf, size_t size, ssize_t *re
 }
 
 int Sysdeps<Read>::operator()(int fd, void *buf, unsigned long size, long *ret) {
+	STUB("Read");
 	size_t got = 0;
 	int err = status(syscall(SYS_READ, fd, buf, size, &got));
 	if (err == 0) {
@@ -59,6 +62,10 @@ int Sysdeps<Read>::operator()(int fd, void *buf, unsigned long size, long *ret) 
 }
 
 int Sysdeps<Open>::operator()(const char *path, int flags, unsigned int mode, int *fd) {
+	STUB("Open");
+	// This contains all the O_* mappings
+	// We're going to follow the linux ABI for this just because I don't want to deal with mapping
+	// them abis\linux\fcntl.h
 	int out = -1;
 	int err = status(syscall(SYS_OPEN, path, flags, mode, &out));
 	if (err == 0) {
@@ -67,9 +74,19 @@ int Sysdeps<Open>::operator()(const char *path, int flags, unsigned int mode, in
 	return err;
 }
 
-int Sysdeps<Close>::operator()(int fd) { return status(syscall(SYS_CLOSE, fd)); }
+int Sysdeps<Close>::operator()(int fd) {
+	STUB("Close");
+	return status(syscall(SYS_CLOSE, fd));
+}
 
 int Sysdeps<Seek>::operator()(int fd, off_t offset, int whence, off_t *new_offset) {
+	if (fd == 0) {
+		// stdin is fd 0
+		// this should be changed when I actually have the syscall
+		// things can technically close the stdin fd and open a new one
+		return ESPIPE;
+	}
+
 	off_t out = 0;
 	int err = status(syscall(SYS_SEEK, fd, offset, whence, &out));
 	if (err == 0) {
@@ -78,7 +95,10 @@ int Sysdeps<Seek>::operator()(int fd, off_t offset, int whence, off_t *new_offse
 	return err;
 }
 
-int Sysdeps<TcbSet>::operator()(void *pointer) { return status(syscall(SYS_SET_FS_BASE, pointer)); }
+int Sysdeps<TcbSet>::operator()(void *pointer) {
+	// STUB("TcbSet");
+	return status(syscall(SYS_SET_FS_BASE, pointer));
+}
 
 int Sysdeps<VmMap>::operator()(
     void *hint, size_t size, int prot, int flags, int fd, off_t offset, void **window
@@ -101,6 +121,12 @@ int Sysdeps<VmUnmap>::operator()(void *pointer, size_t size) {
 	return status(syscall(SYS_MUNMAP, pointer, size));
 }
 
+// This is part of an option that I don't want to explicitly support yet (posix?)
+// The kernel supports it, I'll deal with it later
+// int Sysdeps<VmProtect>::operator()(void *pointer, size_t size, int prot) {
+// 	return status(syscall(SYS_MPROTECT, pointer, size, prot));
+// }
+
 int Sysdeps<AnonAllocate>::operator()(size_t size, void **pointer) {
 	return sysdep<VmMap>(
 	    nullptr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0, pointer
@@ -115,14 +141,17 @@ int Sysdeps<AnonFree>::operator()(void *pointer, unsigned long size) {
 // E_TIMEDOUT on expiry, E_INTR if interrupted. Check whether this mlibc version passes a
 // relative or an absolute timeout.
 int Sysdeps<FutexWait>::operator()(int *pointer, int expected, timespec const *time) {
+	STUB("FutexWait");
 	return status(syscall(SYS_FUTEX_WAIT, pointer, expected, time));
 }
 
 int Sysdeps<FutexWake>::operator()(int *pointer, bool all) {
+	STUB("FutexWake");
 	return status(syscall(SYS_FUTEX_WAKE, pointer, all));
 }
 
 int Sysdeps<ClockGet>::operator()(int clock, time_t *secs, long *nanos) {
+	STUB("ClockGet");
 	timespec ts = {};
 	int err = status(syscall(SYS_CLOCK_GET, clock, &ts));
 	if (err == 0) {

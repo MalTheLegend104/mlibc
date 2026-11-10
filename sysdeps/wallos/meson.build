@@ -71,6 +71,14 @@ if not no_headers
 		subdir: 'abi-bits',
 		follow_symlinks: true,
 	)
+	install_headers(
+		'include/wallos/syscall.h',
+		'include/wallos/syscall_nums.h',
+		'include/wallos/syscall_returns.h',
+		'include/wallos/native_to_linux.h',
+		subdir: 'wallos',
+		follow_symlinks: true,
+	)
 endif
 # ANCHOR_END: abi-includes
 

@@ -43,3 +43,8 @@ To the tops of these files:
 You will have to copy the headers from `<wallos_install_dir>/cross/lib/gcc/x86_64-wallos/15.2.0/include` to `subprojects/freestnd-c-headers/x86_64/`.
 The version of GCC built for WallOS either doesn't have the same set as pulled from the subproject, or (more likely) has a subset of them.
 We need to include the header files that our version of GCC actually expects.
+
+## Future sysdeps
+
+They are here:
+`options\internal\include\mlibc\sysdep-signatures.hpp`

@@ -27,6 +27,22 @@ enum {
 	SYS_FUTEX_WAKE = 14,
 };
 
+#define WALL_PROT_NONE 0x0
+#define WALL_PROT_READ 0x1
+#define WALL_PROT_WRITE 0x2
+#define WALL_PROT_EXEC 0x4
+
+#define WALL_MAP_SHARED 0x000001 // Not supported yet, see sys_mmap.c
+#define WALL_MAP_PRIVATE 0x000002
+#define WALL_MAP_FIXED 0x000010 // Replaces whatever is at the address
+#define WALL_MAP_ANONYMOUS 0x000020
+#define WALL_MAP_GROWSDOWN 0x000100
+#define WALL_MAP_NORESERVE 0x004000 // Accepted and ignored
+#define WALL_MAP_POPULATE 0x008000
+#define WALL_MAP_STACK 0x020000   // Accepted and ignored
+#define WALL_MAP_HUGETLB 0x040000 // 2MB pages, anonymous only
+#define WALL_MAP_FIXED_NOREPLACE 0x100000
+
 // Argument block for SYS_MMAP (passed by pointer in arg0: six inputs plus a result don't fit in
 // registers). Fixed-width types so the layout is identical in kernel and libc.
 typedef struct {
